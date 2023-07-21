@@ -15,9 +15,11 @@ public class UserServiceImpl implements UserService{
     @Autowired
     UserRepository userRepository;
 
-
     @Autowired
     EmailService emailService;
+
+    @Autowired
+    TransactionService transactionService;
 
     @Override
     public BankResponse createAccount(UserRequest userRequest) {
@@ -123,12 +125,19 @@ public class UserServiceImpl implements UserService{
 
         User userToCredit = userRepository.findByAccountNumber(creditDebitRequest.getAccountNumber());
         userToCredit.setAccountBalance(userToCredit.getAccountBalance().add(creditDebitRequest.getAmount()));
-
         userRepository.save(userToCredit);
+
+        TransactionDto transactionDto = TransactionDto.builder()
+                .accountNumber(userToCredit.getAccountNumber())
+                .transactionType("CREDIT")
+                .amount(creditDebitRequest.getAmount())
+                .build();
+
+        transactionService.saveTransaction(transactionDto);
 
         return BankResponse.builder()
                 .responseCode("005")
-                .responseMessage("Account found successfully")
+                .responseMessage("Account Credited successfully")
                 .accountInfo(AccountInfo.builder()
                         .accountBalance(userToCredit.getAccountBalance())
                         .accountNumber(creditDebitRequest.getAccountNumber())
@@ -140,6 +149,8 @@ public class UserServiceImpl implements UserService{
 
     @Override
     public BankResponse debitAccount(CreditDebitRequest creditDebitRequest) {
+        // Check if the account exists
+        // check if the amount you tend to withdraw is not greater than the current account balance
         boolean isAccountExist = userRepository.existsByAccountNumber(creditDebitRequest.getAccountNumber());
 
 
@@ -164,6 +175,15 @@ public class UserServiceImpl implements UserService{
         else {
             userToDebit.setAccountBalance(userToDebit.getAccountBalance().subtract(creditDebitRequest.getAmount()));
             userRepository.save(userToDebit);
+
+            TransactionDto transactionDto = TransactionDto.builder()
+                    .accountNumber(userToDebit.getAccountNumber())
+                    .transactionType("DEBIT")
+                    .amount(creditDebitRequest.getAmount())
+                    .build();
+
+            transactionService.saveTransaction(transactionDto);
+
             return BankResponse.builder()
                     .responseCode("007")
                     .responseMessage("Account debited Successfully")
@@ -174,5 +194,68 @@ public class UserServiceImpl implements UserService{
                             .build())
                     .build();
         }
+    }
+
+    @Override
+    public BankResponse transfer(TransferRequest transferRequest) {
+        // Get the account to debit
+        // check if the amount i'm debiting is not more that the current balance
+        // debit the account
+        // get the account to credit and credit the account
+
+        boolean isDestinationAccount = userRepository.existsByAccountNumber(transferRequest.getDestinationAccountNumber());
+
+        if (!isDestinationAccount){
+            return BankResponse.builder()
+                    .responseCode("004")
+                    .responseMessage("Account do not exist")
+                    .accountInfo(null)
+                    .build();
+        }
+
+        User sourceAccountNumber = userRepository.findByAccountNumber(transferRequest.getSourceAccountNumber());
+
+        if (transferRequest.getAmount().compareTo(sourceAccountNumber.getAccountBalance()) > 0){
+            return BankResponse.builder()
+                    .responseCode("006")
+                    .responseMessage("Insufficient Balance")
+                    .accountInfo(null)
+                    .build();
+        }
+        sourceAccountNumber.setAccountBalance(sourceAccountNumber.getAccountBalance().subtract(transferRequest.getAmount()));
+        String sourceAccount = sourceAccountNumber.getLastName() + " " + sourceAccountNumber.getFirstName() + " " + sourceAccountNumber.getOtherName();
+        userRepository.save(sourceAccountNumber);
+        EmailDetails debitAlert = EmailDetails.builder()
+                .subject("DEBIT ALERT")
+                .recipient(sourceAccountNumber.getEmail())
+                .messageBody("The sum of " + transferRequest.getAmount() + " has been deducted from your account! Your account balance is " + sourceAccountNumber.getAccountBalance())
+                .build();
+        emailService.sendEmail(debitAlert);
+
+        User destinationAccountUser = userRepository.findByAccountNumber(transferRequest.getDestinationAccountNumber());
+        destinationAccountUser.setAccountBalance(destinationAccountUser.getAccountBalance().add(transferRequest.getAmount()));
+        String destination = destinationAccountUser.getLastName() + " " + destinationAccountUser.getFirstName() + " " + destinationAccountUser.getOtherName();
+        userRepository.save(destinationAccountUser);
+        EmailDetails creditAlert = EmailDetails.builder()
+                .subject("DEBIT ALERT")
+                .recipient(destinationAccountUser.getEmail())
+                .messageBody("The sum of " + transferRequest.getAmount() + " has been sent to your account! from " + sourceAccount + " Your account balance is " + destinationAccountUser.getAccountBalance())
+                .build();
+        emailService.sendEmail(creditAlert);
+
+
+        TransactionDto transactionDto = TransactionDto.builder()
+                .accountNumber(destinationAccountUser.getAccountNumber())
+                .transactionType("CREDIT")
+                .amount(transferRequest.getAmount())
+                .build();
+
+        transactionService.saveTransaction(transactionDto);
+
+        return BankResponse.builder()
+                .responseCode("009")
+                .responseMessage("Transaction successful")
+                .accountInfo(null)
+                .build();
     }
 }
