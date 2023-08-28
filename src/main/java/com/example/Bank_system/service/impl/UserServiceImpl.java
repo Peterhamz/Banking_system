@@ -234,12 +234,12 @@ public class UserServiceImpl implements UserService{
 
         User destinationAccountUser = userRepository.findByAccountNumber(transferRequest.getDestinationAccountNumber());
         destinationAccountUser.setAccountBalance(destinationAccountUser.getAccountBalance().add(transferRequest.getAmount()));
-        String destination = destinationAccountUser.getLastName() + " " + destinationAccountUser.getFirstName() + " " + destinationAccountUser.getOtherName();
+        //String destination = destinationAccountUser.getLastName() + " " + destinationAccountUser.getFirstName() + " " + destinationAccountUser.getOtherName();
         userRepository.save(destinationAccountUser);
         EmailDetails creditAlert = EmailDetails.builder()
                 .subject("DEBIT ALERT")
                 .recipient(destinationAccountUser.getEmail())
-                .messageBody("The sum of " + transferRequest.getAmount() + " has been sent to your account! from " + sourceAccount + " Your account balance is " + destinationAccountUser.getAccountBalance())
+                .messageBody("The sum of " + transferRequest.getAmount() + " Has been sent to your account! from " + sourceAccount + " Your account balance is " + destinationAccountUser.getAccountBalance())
                 .build();
         emailService.sendEmail(creditAlert);
 

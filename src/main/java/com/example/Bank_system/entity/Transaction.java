@@ -5,8 +5,12 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -15,7 +19,6 @@ import java.math.BigDecimal;
 @Entity
 @Table(name = "transactions")
 public class Transaction {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String transactionId;
@@ -23,4 +26,8 @@ public class Transaction {
     private BigDecimal amount;
     private String accountNumber;
     private String status;
+    @CreationTimestamp
+    private LocalDate createdAt;
+    @UpdateTimestamp
+    private LocalDate modifiedAt;
 }
