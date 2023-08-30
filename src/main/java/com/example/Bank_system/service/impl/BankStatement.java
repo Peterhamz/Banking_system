@@ -1,5 +1,6 @@
 package com.example.Bank_system.service.impl;
 
+import com.example.Bank_system.dto.EmailDetails;
 import com.example.Bank_system.entity.Transaction;
 import com.example.Bank_system.entity.User;
 import com.example.Bank_system.repository.TransactionRepository;
@@ -22,10 +23,12 @@ import java.util.List;
 @Component
 @AllArgsConstructor
 @Slf4j
-public class BankStatement<PdfTable> {
+public class BankStatement {
 
     private TransactionRepository transactionRepository;
     private UserRepository userRepository;
+
+    private EmailService emailService;
     private static final String FILE = "/Users/mac/Desktop/dataPdf/MyStatement.pdf";
 
     public List<Transaction> generateStatement( String accountNumber, String startDate, String endDate) throws FileNotFoundException, DocumentException {
@@ -48,6 +51,9 @@ public class BankStatement<PdfTable> {
         PdfWriter.getInstance(document, outputStream);
         document.open();
 
+
+
+
         PdfPTable bankInfoTable = new PdfPTable(1);
 
         PdfPCell bankName = new PdfPCell(new Phrase("Bank Application System"));
@@ -59,6 +65,10 @@ public class BankStatement<PdfTable> {
         bankAddress.setBorder(0);
         bankInfoTable.addCell(bankName);
         bankInfoTable.addCell(bankAddress);
+
+
+
+
 
         PdfPTable statementInfo = new PdfPTable(2);
 
@@ -75,10 +85,58 @@ public class BankStatement<PdfTable> {
         address.setBorder(0);
 
 
+        statementInfo.addCell(customerInfo);
+        statementInfo.addCell(statement);
+        statementInfo.addCell(endDate);
+        statementInfo.addCell(name);
+        statementInfo.addCell(space);
+        statementInfo.addCell(address);
+
 
         // Transactions Table
 
+        PdfPTable transactionsTable = new PdfPTable(4);
 
+        PdfPCell date = new PdfPCell(new Phrase("DATE"));
+        date.setBackgroundColor(BaseColor.BLUE);
+        date.setBorder(0);
+        PdfPCell transactionType = new PdfPCell(new Phrase("TRANSACTION TYPE"));
+        transactionType.setBackgroundColor(BaseColor.BLUE);
+        transactionType.setBorder(0);
+        PdfPCell transactionAmount = new PdfPCell(new Phrase("TRANSACTION AMOUNT"));
+        transactionAmount.setBackgroundColor(BaseColor.BLUE);
+        transactionAmount.setBorder(0);
+        PdfPCell status = new PdfPCell(new Phrase("STATUS"));
+        status.setBackgroundColor(BaseColor.BLUE);
+        status.setBorder(0);
+
+        transactionsTable.addCell(date);
+        transactionsTable.addCell(transactionType);
+        transactionsTable.addCell(transactionAmount);
+        transactionsTable.addCell(status);
+
+
+        transactionList.forEach(transaction ->{
+            transactionsTable.addCell(new Phrase(transaction.getCreatedAt().toString()));
+            transactionsTable.addCell(new Phrase(transaction.getTransactionType()));
+            transactionsTable.addCell(new Phrase(transaction.getAmount().toString()));
+            transactionsTable.addCell(new Phrase(transaction.getStatus()));
+        });
+
+        document.add(bankInfoTable);
+        document.add(address);
+        document.add(transactionsTable);
+
+        document.close();
+
+        EmailDetails emailDetails = EmailDetails.builder()
+                .recipient(user.getEmail())
+                .subject("STATEMENT OF ACCOUNT")
+                .messageBody("Kindly find your requested account statement attached! ")
+                .attachment(FILE)
+                .build();
+
+        emailService.sendEmailWithAttachment(emailDetails);
         return transactionList;
     }
 }

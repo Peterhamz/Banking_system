@@ -194,6 +194,7 @@ public class UserServiceImpl implements UserService{
                             .build())
                     .build();
         }
+
     }
 
     @Override
@@ -225,6 +226,8 @@ public class UserServiceImpl implements UserService{
         sourceAccountNumber.setAccountBalance(sourceAccountNumber.getAccountBalance().subtract(transferRequest.getAmount()));
         String sourceAccount = sourceAccountNumber.getLastName() + " " + sourceAccountNumber.getFirstName() + " " + sourceAccountNumber.getOtherName();
         userRepository.save(sourceAccountNumber);
+
+
         EmailDetails debitAlert = EmailDetails.builder()
                 .subject("DEBIT ALERT")
                 .recipient(sourceAccountNumber.getEmail())
@@ -236,6 +239,8 @@ public class UserServiceImpl implements UserService{
         destinationAccountUser.setAccountBalance(destinationAccountUser.getAccountBalance().add(transferRequest.getAmount()));
         //String destination = destinationAccountUser.getLastName() + " " + destinationAccountUser.getFirstName() + " " + destinationAccountUser.getOtherName();
         userRepository.save(destinationAccountUser);
+
+
         EmailDetails creditAlert = EmailDetails.builder()
                 .subject("DEBIT ALERT")
                 .recipient(destinationAccountUser.getEmail())
