@@ -37,7 +37,10 @@ public class AccountUtils {
         StringBuilder accountNumber = new StringBuilder();
         accountNumber.append(year).append(randomNum);
 
+        System.out.println("This is the Account Number: " + accountNumber);
+
         return accountNumber.toString();
+
 
     }
 
